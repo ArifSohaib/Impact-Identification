@@ -237,11 +237,13 @@ class DataGenerator():
                 batch_count = 0
 
 class EmbeddingGenerator():
-    def __init__(embedding_file, frame_file):
-        this.embedding_file = embedding_file
-        this.frame_file = frame_file
+    def __init__(self, embedding_file, frame_file):
+        self.embedding_file = embedding_file
+        self.frame_file = frame_file
+        self.data = pd.read_csv(self.embedding_file, sep=" ", header=None)
+        self.impact_frames = get_impact_frames(self.frame_file)
 
-    def generate_embeddings(embedding_file= 'period1', batch_size=100, impact_file = 'frames_vid1'):
+    def generate_embeddings(self, batch_size):
         """
         generates video frames and labels to train/validate model(use different function to test)
         yields:
@@ -250,9 +252,7 @@ class EmbeddingGenerator():
         args:
             video_file: the file containing the video to process
             frame_file: the frame containing the labeled impact
-        """
-        data = pd.read_csv(self.embedding_file, sep=" ", header=None)
-        impact_frames = get_impact_frames(self.impact_file)
+        """        
         vid_frame_count = 0
         impact_frame_count = 0
         batch_count = 0
@@ -262,7 +262,7 @@ class EmbeddingGenerator():
             try:
                 if batch_count < batch_size:
                     #if the current_frame is one of the frames containing the impact
-                    if vid_frame_count == impact_frames[impact_frame_count]:
+                    if vid_frame_count == self.impact_frames[impact_frame_count]:
                         batch_labels[batch_count] = [1,0]
                         impact_frame_count+=1
                     
@@ -274,11 +274,62 @@ class EmbeddingGenerator():
                     batch_count += 1
                 else:
                     batch_count = 0
-                    yield np.expand_dims(data[vid_frame_count-batch_size:vid_frame_count], axis=1), batch_labels
+                    yield np.expand_dims(self.data[vid_frame_count-batch_size:vid_frame_count], axis=1), batch_labels
             except IndexError:
                 # yield batch_features, batch_labels
-                yield np.expand_dims(data[vid_frame_count-batch_size:vid_frame_count], axis=1), batch_labels
+                yield np.expand_dims(self.data[vid_frame_count-batch_size:vid_frame_count], axis=1), batch_labels
                 #restart 
+                vid_frame_count = 0
+                impact_frame_count = 0
+                batch_count = 0
+
+    def generate_embeddings_skip(self, batch_size=100, skip_prob=0.5):
+        """
+        generates video frames and labels to train/validate model(use different function to test)
+        yields:
+            x: embedding
+            y: label
+        args:
+            video_file: the file containing the video to process
+            frame_file: the frame containing the labeled impact
+        """
+        vid_frame_count = 0
+        impact_frame_count = 0
+        batch_count = 0
+        # batch_features = np.zeros((batch_size, 2048))
+        batch_labels = np.zeros((batch_size,2))
+        batch_features = np.zeros((batch_size, 1, 2048))
+        while True:
+            try:
+                if batch_count < batch_size:
+                    #if the current_frame is one of the frames containing the impact
+                    if vid_frame_count == self.impact_frames[impact_frame_count]:
+                        batch_labels[batch_count] = [1,0]
+                        batch_features[batch_count] = self.data[vid_frame_count:vid_frame_count+1]
+                        impact_frame_count+=1
+                        vid_frame_count += 1
+                        batch_count +=1
+                    else:
+                        rand = np.random.randn()
+                        if rand > skip_prob:
+                            batch_features[batch_count] = self.data[vid_frame_count:vid_frame_count+1]
+                            batch_labels[batch_count] = [0,1]
+                            vid_frame_count += 1
+                            batch_count += 1
+                        else:
+                            #if random number is less than prob, skip frame
+                            vid_frame_count += 1
+                            batch_count += 1
+                else:
+                    batch_count = 0
+                    # yield np.expand_dims(self.data[vid_frame_count-batch_size:vid_frame_count], axis=1), batch_labels
+                    yield batch_features, batch_labels
+                    
+            except IndexError:
+                # yield batch_features, batch_labels
+                # yield np.expand_dims(self.data[vid_frame_count-batch_size:vid_frame_count], axis=0), batch_labels
+                #restart 
+                print('WARNING: Restarting generator, current frame count {}, batch_count={}'.format(vid_frame_count, batch_count))
                 vid_frame_count = 0
                 impact_frame_count = 0
                 batch_count = 0
