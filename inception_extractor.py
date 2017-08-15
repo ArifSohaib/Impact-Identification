@@ -29,4 +29,10 @@ def extract_embedding(filename):
         sequence.append(features)
 
     # Save the sequence.
-    np.savetxt("period{}".format(filename[-9]), sequence)
+    np.savetxt("data/features/period{}".format(filename[-9]), sequence)
+
+def main():
+    extract_embedding('U18 vs Waterloo Period 1.mp4')
+
+if __name__ == '__main__':
+    main()
