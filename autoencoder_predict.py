@@ -22,61 +22,29 @@ def desc_normal_error():
     """
     describes the reconstruction error on normal data
     """
-    #read the data
-    data = pd.read_csv('data/normal_data.csv')
-    #the first key is the index so we discard it
-    # feature_keys = data.keys()[1:-1]
-    df = data[data.keys()[1:-1]]
-    # df_norm = (df - df.mean()) / (df.max() - df.std())
-    features = df.values
-    #use the default autoencoder with 8 inputs and 12 embedings
-    model = load_model()
-
-    #predict the 8 input values for each row
-    preds = model.predict(features)
-    #calcualte the error
-    mse = np.mean(np.power(features - preds, 2), axis=1)
-    
-    error_df = pd.DataFrame({'reconstruction_error':mse, 'true_class':data['impact_class'].values})
-    print(error_df.describe())
-    print(error_df.describe()['reconstruction_error']['25%'])
+    return desc_error('data/normal_data.csv')
 
 def desc_full_error():
     """
     describes the reconstruction error on anomaly data
     """
-    #read the data
-    data = pd.read_csv('data/full_data.csv')
-    #the first key is the index so we discard it
-    df = data[data.keys()[1:-1]]
-    #normalize the data 
-    # df_norm = (df - df.mean()) / (df.max() - df.std())
-    features = df.values
-    #use the default autoencoder with 8 inputs and 12 embedings
-    model = load_model()
-
-    #predict the 8 input values for each row 
-    preds = model.predict(features)
-    #calcualte the error
-    mse = np.mean(np.power(features - preds, 2), axis=1)
-    
-    error_df = pd.DataFrame({'reconstruction_error':mse, 'true_class':data['impact_class'].values})
-    print(error_df.describe())
-    print(error_df.describe()['reconstruction_error']['25%'])
-
-    return error_df,  error_df.describe()['reconstruction_error']['min']
+    return desc_error('data/full_data.csv')
 
 def desc_anomaly_error():
+    return desc_error('data/anomaly_data.csv')
+
+def desc_error(filename):
     """
     describes the reconstruction error on anomaly data
     """
     #read the data
-    data = pd.read_csv('data/anomaly_data.csv')
+    data = pd.read_csv(filename)
     #the first key is the index so we discard it
     df = data[data.keys()[1:-1]]
     #normalize the data 
     df_norm = (df - df.mean()) / (df.max() - df.std())
-    features = df.values
+    # features = scale_data(df_norm.values)
+    features = df_norm.values
     #use the default autoencoder with 8 inputs and 12 embedings
     model = load_model()
 
@@ -87,10 +55,9 @@ def desc_anomaly_error():
     
     error_df = pd.DataFrame({'reconstruction_error':mse, 'true_class':data['impact_class'].values})
     print(error_df.describe())
-    print(error_df.describe()['reconstruction_error']['25%'])
+    print(error_df.describe()['reconstruction_error']['min'])
 
-    return error_df,  error_df.describe()['reconstruction_error']['25%']
-
+    return error_df,  error_df.describe()['reconstruction_error']['min']
 
 def get_pred_idx():
     """
@@ -110,8 +77,11 @@ def get_pred_data():
     """
     idx = get_pred_idx()
     data = pd.read_csv('data/full_data.csv')
-    data = data.ix[data]
-    return data
+    data = data.ix[idx]
+    keys = data.keys()[1:-1]
+    mapping = {'X':0, 'I':1}
+    labels = data['impact_class'].map(mapping)
+    return data[keys], labels
 
 def main():
     #read the data
@@ -122,8 +92,8 @@ def main():
     model = load_model()
     df = data[data.keys()[1:-1]]
     #normalize the data 
-    # df_norm = (df - df.mean()) / (df.max() - df.std())
-    features = df.values
+    df_norm = (df - df.mean()) / (df.max() - df.std())
+    features = df_norm.values
     #predict the 8 input values for each row 
     preds = model.predict(features,batch_size=100)
     #calcualte the error
@@ -133,7 +103,7 @@ def main():
     #predict impact/non_impact using an error threshold
     _, threshold = desc_anomaly_error()
     # threshold = 0.0112
-    y_pred = ['I' if e > threshold else 'X' for e in error_df.reconstruction_error.values]
+    y_pred = ['I' if e > threshold*10 else 'X' for e in error_df.reconstruction_error.values]
 
     #get all the impact indices
     true_labels = preprocessing.label_binarize(data['impact_class'].values,classes=["X","I"])
