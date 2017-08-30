@@ -42,9 +42,9 @@ def desc_error(filename):
     #the first key is the index so we discard it
     df = data[data.keys()[1:-1]]
     #normalize the data 
-    df_norm = (df - df.mean()) / (df.max() - df.std())
-    # features = scale_data(df_norm.values)
-    features = df_norm.values
+    df_norm = (df - df.mean()) / (df.max() - df.min())
+    features = scale_data(df_norm.values)
+    # features = df_norm.values
     #use the default autoencoder with 8 inputs and 12 embedings
     model = load_model()
 
@@ -55,9 +55,9 @@ def desc_error(filename):
     
     error_df = pd.DataFrame({'reconstruction_error':mse, 'true_class':data['impact_class'].values})
     print(error_df.describe())
-    print(error_df.describe()['reconstruction_error']['min'])
+    print(error_df.describe()['reconstruction_error']['25%'])
 
-    return error_df,  error_df.describe()['reconstruction_error']['min']
+    return error_df,  error_df.describe()['reconstruction_error']['25%']
 
 def get_pred_idx():
     """
@@ -92,10 +92,10 @@ def main():
     model = load_model()
     df = data[data.keys()[1:-1]]
     #normalize the data 
-    df_norm = (df - df.mean()) / (df.max() - df.std())
-    features = df_norm.values
+    df_norm = (df - df.mean()) / (df.max() - df.min())
+    features = scale_data(df_norm.values)
     #predict the 8 input values for each row 
-    preds = model.predict(features,batch_size=100)
+    preds = model.predict(features,batch_size=128)
     #calcualte the error
     mse = np.mean(np.power(features - preds, 2), axis=1)
     
@@ -103,7 +103,7 @@ def main():
     #predict impact/non_impact using an error threshold
     _, threshold = desc_anomaly_error()
     # threshold = 0.0112
-    y_pred = ['I' if e > threshold*10 else 'X' for e in error_df.reconstruction_error.values]
+    y_pred = ['I' if e > threshold else 'X' for e in error_df.reconstruction_error.values]
 
     #get all the impact indices
     true_labels = preprocessing.label_binarize(data['impact_class'].values,classes=["X","I"])
