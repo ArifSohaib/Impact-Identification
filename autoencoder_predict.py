@@ -18,20 +18,29 @@ def load_model():
     model.load_weights('weights/autoencoder_{}layer_{}_{}embed.h5'.format(autoencoder.num_layers, autoencoder.mid_activation, autoencoder.encoding_dim))
     return model
 
-def desc_normal_error():
+def desc_normal_error(test=False):
     """
     describes the reconstruction error on normal data
     """
-    return desc_error('data/normal_data.csv')
+    if test == False:
+        return desc_error('data/normal_data.csv')
+    else:
+        return desc_error('data/test_normal_data.csv')
 
-def desc_full_error():
+def desc_full_error(test=False):
     """
     describes the reconstruction error on anomaly data
     """
-    return desc_error('data/full_data.csv')
+    if test==False:
+        return desc_error('data/full_data.csv')
+    else:
+        return desc_error('data/test_full_data.csv')
 
-def desc_anomaly_error():
-    return desc_error('data/anomaly_data.csv')
+def desc_anomaly_error(test=False):
+    if test==False:
+        return desc_error('data/anomaly_data.csv')
+    else:
+        return desc_error('data/test_anomaly_data.csv')
 
 def desc_error(filename):
     """
@@ -40,10 +49,10 @@ def desc_error(filename):
     #read the data
     data = pd.read_csv(filename)
     #the first key is the index so we discard it
-    df = data[data.keys()[1:-1]]
+    df = pd.DataFrame(scale_data(data[data.keys()[1:-1]].values))
     #normalize the data 
     df_norm = (df - df.mean()) / (df.max() - df.min())
-    features = scale_data(df_norm.values)
+    features = df_norm.values
     # features = df_norm.values
     #use the default autoencoder with 8 inputs and 12 embedings
     model = load_model()
@@ -57,35 +66,63 @@ def desc_error(filename):
     print(error_df.describe())
     print(error_df.describe()['reconstruction_error']['25%'])
 
-    return error_df,  error_df.describe()['reconstruction_error']['25%']
+    error_dict = {'df':error_df, 
+                  'min':error_df.describe()['reconstruction_error']['min'],
+                  '50%':error_df.describe()['reconstruction_error']['50%'],
+                  '75%':error_df.describe()['reconstruction_error']['75%']}
+    return error_dict
+    # return error_df,  error_df.describe()['reconstruction_error']['min'], error_df.describe()['reconstruction_error']['50%'], error_df.describe()['reconstruction_error']['75%']
 
-def get_pred_idx():
+def get_pred_idx(test=False):
     """
     returns the indices for values above threshold
     """
-    error_df,_ = desc_full_error()
-    _, threshold = desc_anomaly_error()
+    if test is False:
+        full_error_dict= desc_full_error()
+        anomaly_error_dict = desc_anomaly_error()
+    else:
+        full_error_dict = desc_full_error(test=True)
+        anomaly_error_dict = desc_anomaly_error(test=True)
     impact_idx = list()
-    for idx, val in enumerate(error_df.reconstruction_error.values):
-        if val > threshold:
+    confirm_idx = list()
+    for idx, val in enumerate(full_error_dict['df'].reconstruction_error.values):
+        if val > anomaly_error_dict['min'] and val < anomaly_error_dict['50%']:
             impact_idx.append(idx)
-    return impact_idx
+        elif val > anomaly_error_dict['50%']:
+            confirm_idx.append(idx)
+    return impact_idx, confirm_idx
 
-def get_pred_data():
+def get_pred_data(test=False):
     """
     gets the data to be fed into the post-autoencoder classifier
+        Returns:
+            data[keys]: the data between min and 50th percentile reconstruction error
+            labels: the labels between min and 50th percentile reconstruction error
+            confirm_data[keys]: data above 75th percentile reconstruction error
+            confirm_labels: labels above 75th percentile reconstruction error
     """
-    idx = get_pred_idx()
-    data = pd.read_csv('data/full_data.csv')
-    data = data.ix[idx]
+    
+    if test is False:
+        mid_idx, idx = get_pred_idx()
+        data = pd.read_csv('data/full_data.csv')
+    else:
+        mid_idx, idx = get_pred_idx(test=True)
+        data = pd.read_csv('data/test_full_data.csv')
+    confirm_data = data.ix[idx]
+    # print(confirm_data['impact_class'])
+    data = data.ix[mid_idx]
     keys = data.keys()[1:-1]
     mapping = {'X':0, 'I':1}
     labels = data['impact_class'].map(mapping)
-    return data[keys], labels
+    
+    confirm_labels = confirm_data['impact_class'].map(mapping)
+    
+    return data[keys], labels, confirm_data[keys], confirm_labels
 
 def main():
     #read the data
-    data = pd.read_csv('data/full_data.csv')
+    # data = pd.read_csv('data/full_data.csv')
+    data = pd.read_csv('data/test_full_data.csv')
     #the first key is the index and the last key is the real class so we discard both
     feature_keys = data.keys()[1:-1]
     #use the default autoencoder with 8 inputs and 12 embedings
@@ -101,10 +138,11 @@ def main():
     
     error_df = pd.DataFrame({'reconstruction_error':mse, 'true_class':data['impact_class'].values})
     #predict impact/non_impact using an error threshold
-    _, threshold = desc_anomaly_error()
-    # threshold = 0.0112
-    y_pred = ['I' if e > threshold else 'X' for e in error_df.reconstruction_error.values]
-
+    anomaly_error_dict = desc_anomaly_error()
+    #values confirmed to be anomaly
+    y_pred = ['I' if e > anomaly_error_dict['75%'] else 'X' for e in error_df.reconstruction_error.values]
+    #values to be fed to SVM 
+    y_pred_check = ['I' if e > anomaly_error_dict['min'] and e < anomaly_error_dict['50%'] else 'X' for e in error_df.reconstruction_error.values]
     #get all the impact indices
     true_labels = preprocessing.label_binarize(data['impact_class'].values,classes=["X","I"])
     pred_labels = preprocessing.label_binarize(y_pred,classes=["X","I"])
