@@ -54,7 +54,7 @@ class Autoencoder_model:
         encoder = Dense(self.encoding_dim, activation=self.mid_activation)(input_layer)
         encoder = BatchNormalization()(encoder)
         encoder = Dense(self.encoding_dim, activation=self.mid_activation)(encoder)
-        encoder = Dropout(0.3)(encoder)
+        encoder = Dropout(0.5)(encoder)
         decoder = Dense(self.input_dim, activation='tanh')(encoder)
         model =  Model(inputs=input_layer, outputs=decoder)
         #for naming convention get the number of intermediate layers(input and output layers not counted)
