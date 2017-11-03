@@ -17,11 +17,11 @@ class Post_Autoencoder:
     def build_model(self):
         input_layer = Input(shape=(8,))
         x = BatchNormalization()(input_layer)
-        x = Dense(32, activation='elu')(x)
-        # x = BatchNormalization()(x)
         x = Dense(16, activation='elu')(x)
         # x = BatchNormalization()(x)
         x = Dense(8, activation='elu')(x)
+        # x = BatchNormalization()(x)
+        x = Dense(4, activation='elu')(x)
         x = Dense(1, activation='relu')(x)
         return Model(inputs=input_layer, outputs=x)
 
