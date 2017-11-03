@@ -33,16 +33,16 @@ def main():
     class_weights = {1:3, 0:1}
     features, labels, partial_labels, true_labels = get_pred_data(test=False, min_threshold='min', max_threshold='75%')
     test_features, test_labels, test_partial_labels, test_true_labels = get_pred_data(
-        test=True, min_threshold='min', max_threshold='50%')
+        test=True, min_threshold='min', max_threshold='75%')
     #normalize the test features
     test_features = (test_features - test_features.mean()) /(test_features.max() - test_features.min())
 
     #normalize the train features
     features = (features - features.mean()) / (features.max() - features.min())
     if len(features) < 2000:
-        n_epochs = 100
+        n_epochs = 1000
     else:
-        n_epochs = 300
+        n_epochs = 3000
     # features = scale_data(data.values)
     model.fit(features.values, labels.values, class_weight=class_weights, epochs=n_epochs, shuffle=False)
     preds = model.predict(features.values)
