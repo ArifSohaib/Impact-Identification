@@ -44,38 +44,38 @@ class Autoencoder_model:
 
         return mse + contractive
 
-    def build_autoencoder(self):
-        """
-        defines the autoencoder keras model
-        """
-
-        input_layer = Input(shape=(self.input_dim,))
-        # encoder = Activation('tanh')
-        encoder = Dense(self.encoding_dim, activation=self.mid_activation)(input_layer)
-        encoder = BatchNormalization()(encoder)
-        encoder = Dense(self.encoding_dim, activation=self.mid_activation)(encoder)
-        encoder = Dropout(0.5)(encoder)
-        decoder = Dense(self.input_dim, activation='tanh')(encoder)
-        model =  Model(inputs=input_layer, outputs=decoder)
-        #for naming convention get the number of intermediate layers(input and output layers not counted)
-        self.num_layers = len(model.layers) - 2
-        return model
-
     # def build_autoencoder(self):
-    #     input_size = 8
-    #     hidden_size = 6
-    #     code_size = 4
+    #     """
+    #     defines the autoencoder keras model
+    #     """
+    #
+    #     input_layer = Input(shape=(self.input_dim,))
+    #     encoder = Activation('tanh')
+    #     encoder = Dense(self.encoding_dim, activation=self.mid_activation)(input_layer)
+    #     encoder = BatchNormalization()(encoder)
+    #     encoder = Dense(self.encoding_dim, activation=self.mid_activation)(encoder)
+    #     encoder = Dropout(0.5)(encoder)
+    #     decoder = Dense(self.input_dim, activation='tanh')(encoder)
+    #     model =  Model(inputs=input_layer, outputs=decoder)
+    #     #for naming convention get the number of intermediate layers(input and output layers not counted)
+    #     self.num_layers = len(model.layers) - 2
+    #     return model
 
-    #     input_img = Input(shape=(input_size,))
-    #     hidden_1 = Dense(hidden_size, activation=self.mid_activation)(input_img)
-    #     code = Dense(code_size, activation=self.mid_activation)(hidden_1)
-    #     hidden_2 = Dense(hidden_size, activation=self.mid_activation)(code)
-    #     output_img = Dense(
-    #         input_size, activation=self.mid_activation)(hidden_2)
+    def build_autoencoder(self):
+        input_size = 8
+        hidden_size = 6
+        code_size = 4
 
-    #     autoencoder = Model(input_img, output_img)
-    #     self.num_layers = len(autoencoder.layers) - 2
-    #     return autoencoder
+        input_img = Input(shape=(input_size,))
+        hidden_1 = Dense(hidden_size, activation=self.mid_activation)(input_img)
+        code = Dense(code_size, activation=self.mid_activation)(hidden_1)
+        hidden_2 = Dense(hidden_size, activation=self.mid_activation)(code)
+        output_img = Dense(
+            input_size, activation=self.mid_activation)(hidden_2)
+
+        autoencoder = Model(input_img, output_img)
+        self.num_layers = len(autoencoder.layers) - 2
+        return autoencoder
 
 def scale_data(data):
     """
