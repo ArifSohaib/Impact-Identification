@@ -68,10 +68,10 @@ class Autoencoder_model:
 
         input_img = Input(shape=(input_size,))
         hidden_1 = Dense(hidden_size, activation=self.mid_activation)(input_img)
-        code = Dense(code_size, activation=self.mid_activation)(hidden_1)
-        hidden_2 = Dense(hidden_size, activation=self.mid_activation)(code)
+        # code = Dense(code_size, activation=self.mid_activation)(hidden_1)
+        # hidden_2 = Dense(hidden_size, activation=self.mid_activation)(code)
         output_img = Dense(
-            input_size, activation=self.mid_activation)(hidden_2)
+            input_size, activation=self.mid_activation)(hidden_1)#(hidden_2)
 
         autoencoder = Model(input_img, output_img)
         self.num_layers = len(autoencoder.layers) - 2
