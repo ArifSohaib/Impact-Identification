@@ -50,11 +50,11 @@ class Autoencoder_model:
     #     """
     #
     #     input_layer = Input(shape=(self.input_dim,))
-    #     encoder = Activation('tanh')
+    #     # encoder = Activation('tanh')
     #     encoder = Dense(self.encoding_dim, activation=self.mid_activation)(input_layer)
     #     encoder = BatchNormalization()(encoder)
     #     encoder = Dense(self.encoding_dim, activation=self.mid_activation)(encoder)
-    #     encoder = Dropout(0.5)(encoder)
+    #     encoder = Dropout(0.2)(encoder)
     #     decoder = Dense(self.input_dim, activation='tanh')(encoder)
     #     model =  Model(inputs=input_layer, outputs=decoder)
     #     #for naming convention get the number of intermediate layers(input and output layers not counted)
@@ -67,11 +67,15 @@ class Autoencoder_model:
         code_size = 4
 
         input_img = Input(shape=(input_size,))
-        hidden_1 = Dense(hidden_size, activation=self.mid_activation)(input_img)
-        code = Dense(code_size, activation=self.mid_activation)(hidden_1)
-        hidden_2 = Dense(hidden_size, activation=self.mid_activation)(code)
+        hidden_1 = BatchNormalization()(input_img)
+        hidden_1 = Dense(hidden_size, activation=self.mid_activation)(hidden_1)
+        # hidden_2 = Dropout(0.2)(hidden_1)
+        # code = Dense(code_size, activation=self.mid_activation)(hidden_1)
+        #
+        # hidden_2 = Dense(hidden_size, activation=self.mid_activation)(hidden_1)
+
         output_img = Dense(
-            input_size, activation=self.mid_activation)(hidden_2)
+            input_size, activation=self.mid_activation)(hidden_1)
 
         autoencoder = Model(input_img, output_img)
         self.num_layers = len(autoencoder.layers) - 2
@@ -88,7 +92,7 @@ def scale_data(data):
     return x_scaled
 
 def get_model():
-    activation = 'tanh'
+    activation = 'elu'
     return Autoencoder_model(input_dim=8, encoding_dim=12, mid_acivation=activation)
 
 def main():
@@ -104,12 +108,12 @@ def main():
     train_data = train_df_norm.values
     test_data = test_df_norm.values
 
-    nb_epoch = 10000
+    nb_epoch = 15000
     batch_size = 100
     autoencoder = get_model()
     model = autoencoder.build_autoencoder()
     # model.compile(optimizer=optimizers.Adam(lr=0.0001),loss='mean_squared_error', metrics=['accuracy'])
-    model.compile(optimizer='adadelta', loss='mean_squared_error')
+    model.compile(optimizer='adam', loss='mean_squared_error')
 
     checkpointer = ModelCheckpoint(filepath="checkpoints/autoencoder_model.h5",
                                verbose=1,
