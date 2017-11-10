@@ -5,11 +5,11 @@ from sklearn.metrics import f1_score, confusion_matrix
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-features, labels, partial_labels, true_labels = get_pred_data(test=False, min_threshold='min', max_threshold='75%')
-test_features, test_labels, test_partial_labels, test_true_labels = get_pred_data(test=True, min_threshold='min', max_threshold='75%')
-class_weights = {1: 3, 0: 1}
+features, labels, partial_labels, true_labels = get_pred_data(test=False, min_threshold='25%', max_threshold='75%')
+test_features, test_labels, test_partial_labels, test_true_labels = get_pred_data(test=True, min_threshold='25%', max_threshold='75%')
+class_weights = {1: 7, 0: 1}
 
-clf = SVC(C=4.0, decision_function_shape='ovr', kernel='rbf', gamma='auto', class_weight=class_weights)
+clf = SVC(C=20.0, decision_function_shape='ovr', kernel='rbf', gamma='auto', class_weight=class_weights)
 test_features = (test_features - test_features.mean()) / (test_features.max() - test_features.min())
 features = (features - features.mean()) / (features.max() - features.min())
 clf.fit(features.values,labels.values) #train it on old dataset
