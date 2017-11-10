@@ -16,13 +16,15 @@ class Post_Autoencoder:
     """
     def build_model(self):
         input_layer = Input(shape=(8,))
-        x = BatchNormalization()(input_layer)
-        x = Dense(16, activation='elu')(x)
+        # x = BatchNormalization()(input_layer)
+        # x = Dense(12, activation='tanh')(x)
         # x = BatchNormalization()(x)
-        x = Dense(8, activation='elu')(x)
+        # x = Dropout(0.1)(x)
+        x = Dense(10, activation='elu')(input_layer)
         # x = BatchNormalization()(x)
-        x = Dense(4, activation='elu')(x)
-        x = Dense(1, activation='relu')(x)
+        x = Dense(5, activation='elu')(x)
+        x = BatchNormalization()(x)
+        x = Dense(1, activation='sigmoid')(x)
         return Model(inputs=input_layer, outputs=x)
 
 def main():
@@ -30,7 +32,7 @@ def main():
     model = model.build_model()
     model.compile(loss='binary_crossentropy',
                   optimizer='adadelta', metrics=['accuracy'])
-    class_weights = {1:3, 0:1}
+    class_weights = {1:7, 0:1}
     features, labels, partial_labels, true_labels = get_pred_data(test=False, min_threshold='min', max_threshold='75%')
     test_features, test_labels, test_partial_labels, test_true_labels = get_pred_data(
         test=True, min_threshold='min', max_threshold='75%')
@@ -42,9 +44,9 @@ def main():
     if len(features) < 2000:
         n_epochs = 1000
     else:
-        n_epochs = 3000
+        n_epochs = 500
     # features = scale_data(data.values)
-    model.fit(features.values, labels.values, class_weight=class_weights, epochs=n_epochs, shuffle=False)
+    model.fit(features.values, labels.values, class_weight=class_weights, epochs=n_epochs, validation_data=(test_features.values, test_labels.values))
     preds = model.predict(features.values)
 
     test_preds = model.predict(test_features.values)
