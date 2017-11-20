@@ -4,11 +4,11 @@ module to predict class using autoencoder
 import pandas as pd
 import numpy as np
 from autoencoder_model import Autoencoder_model, scale_data, get_model
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, f1_score
+from sklearn import preprocessing
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import f1_score
-from sklearn import preprocessing
+
 
 
 def load_model():
@@ -51,8 +51,9 @@ def desc_error(filename):
     #the first key is the index so we discard it
     df = pd.DataFrame(data[data.keys()[1:-1]].values)
     #normalize the data
-    df_norm = (df - df.mean()) / (df.max() - df.min())
-    features = df_norm.values
+    min_max_scalar = preprocessing.MinMaxScaler()
+    df_norm = min_max_scalar.fit_transform(df.values)
+    features = df_norm
     # features = df_norm.values
     #use the default autoencoder with 8 inputs and 12 embedings
     model = load_model()
@@ -65,7 +66,6 @@ def desc_error(filename):
     error_df = pd.DataFrame({'reconstruction_error':mse, 'true_class':data['impact_class'].values})
     print(filename)
     print(error_df.describe())
-    # print(error_df.describe()['reconstruction_error']['25%'])
 
     error_dict = {'df':error_df,
                   'min':error_df.describe()['reconstruction_error']['min'],
@@ -130,7 +130,7 @@ def get_pred_idx_max(test=False,  max_threshold='75%'):
     # if min_threshold not in ['min', '25%']:
     #     min_threshold = 'min'
     if max_threshold not in ['25%', '50%', '75%', 'max']:
-        max_threshold = '50%'
+        max_threshold = '75%'
     for idx, val in enumerate(full_error_dict['df'].reconstruction_error.values):
         if val > anomaly_error_dict[max_threshold]:
             impact_idx.append(idx)
@@ -162,7 +162,6 @@ def get_pred_data(test=False, min_threshold='min', max_threshold='50%'):
     # print(len(idx))
     confirm_labels= np.zeros(shape=len(true_labels))
     confirm_labels[idx] = 1
-    # print(confirm_data['impact_class'])
     data = data.ix[mid_idx]
     keys = data.keys()[1:-1]
     mapping = {'X':0, 'I':1}
@@ -189,8 +188,7 @@ def plot_pred_errors(test=False):
 
 def main():
     #read the data
-    data = pd.read_csv('data/full_data.csv')
-    # data = pd.read_csv('data/test_full_data.csv')
+    data = pd.read_csv('data/test_full_data.csv')
     #the first key is the index and the last key is the real class so we discard both
     feature_keys = data.keys()[1:-1]
     #use the default autoencoder with 8 inputs and 12 embedings
@@ -206,9 +204,9 @@ def main():
 
     error_df = pd.DataFrame({'reconstruction_error':mse, 'true_class':data['impact_class'].values})
     #predict impact/non_impact using an error threshold
-    anomaly_error_dict = desc_anomaly_error(test=False)
+    anomaly_error_dict = desc_anomaly_error(test=True)
     #values confirmed to be anomaly
-    y_pred = ['I' if e > anomaly_error_dict['25%'] else 'X' for e in error_df.reconstruction_error.values]
+    y_pred = ['I' if e > anomaly_error_dict['75%'] else 'X' for e in error_df.reconstruction_error.values]
     #values to be fed to SVM
     # y_pred_check = ['I' if e > anomaly_error_dict['min'] and e < anomaly_error_dict['50%'] else 'X' for e in error_df.reconstruction_error.values]
     #get all the impact indices

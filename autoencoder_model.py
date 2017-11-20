@@ -102,14 +102,15 @@ def main():
     train_data = pd.read_csv("data/anomaly_data.csv")
     # test_data = pd.read_csv('data/test_normal_data.csv')
     test_data = pd.read_csv("data/test_anomaly_data.csv")
-    train_df = pd.DataFrame(train_data[train_data.keys()[1:-1].values])
-    train_df_norm = (train_df - train_df.mean()) / \
-        (train_df.max() - train_df.min())
-    test_df = pd.DataFrame(test_data[test_data.keys()[1:-1]].values)
-    test_df_norm = (test_df - test_df.mean()) / (test_df.max() - test_df.min())
 
-    train_data = train_df_norm.values
-    test_data = test_df_norm.values
+    min_max_scalar = preprocessing.MinMaxScaler()
+    train_df = pd.DataFrame(train_data[train_data.keys()[1:-1].values])
+    train_df_norm = min_max_scalar.fit_transform(train_df.values)
+    test_df = pd.DataFrame(test_data[test_data.keys()[1:-1]].values)
+    test_df_norm = min_max_scalar.fit_transform(test_df.values)
+
+    train_data = train_df_norm
+    test_data = test_df_norm
 
     nb_epoch = 10000
     batch_size = 100
